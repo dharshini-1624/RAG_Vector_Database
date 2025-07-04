@@ -76,6 +76,18 @@ def get_gemini_embedding(text):
 
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
+# Test Supabase connection
+try:
+    # Try a simple query to test the connection
+    result = supabase.table("documents").select("*", count="exact").limit(1).execute()
+    print("✅ Supabase connection successful")
+except Exception as e:
+    st.error(f"❌ Supabase connection failed: {e}")
+    st.error("Please check your SUPABASE_URL and SUPABASE_KEY")
+    st.error(f"URL: {SUPABASE_URL}")
+    st.error(f"Key starts with: {SUPABASE_KEY[:20] if SUPABASE_KEY else 'None'}...")
+    st.stop()
+
 st.title("📄 RAG Vector Uploader")
 uploaded_file = st.file_uploader("Upload PDF, CSV, or Excel", type=["pdf", "csv", "xlsx"])
 
@@ -134,15 +146,31 @@ if uploaded_file:
         st.success("✅ Embeddings created.")
 
         st.info("📦 Uploading to Supabase...")
+        upload_success_count = 0
+        upload_failed_count = 0
+        
         for i, entry in enumerate(embedded_chunks):
             try:
-                supabase.table("documents").insert({
+                result = supabase.table("documents").insert({
                     "file_name": uploaded_file.name,
                     "chunk": entry["content"],
                     "embedding": entry["embedding"],
                     "chunk_index": i
                 }).execute()
+                upload_success_count += 1
+                print(f"✅ Uploaded chunk {i}")
             except Exception as e:
+                upload_failed_count += 1
                 st.error(f"Failed to upload chunk {i}: {e}")
+                # If it's an authentication error, stop trying
+                if "Invalid API key" in str(e) or "authentication" in str(e).lower():
+                    st.error("❌ Authentication failed. Please check your Supabase API key.")
+                    st.error("Stopping upload process due to authentication errors.")
+                    break
 
-        st.success("🎉 All chunks uploaded to Supabase Vector DB!")
+        if upload_failed_count == 0:
+            st.success(f"🎉 All {upload_success_count} chunks uploaded to Supabase Vector DB!")
+        elif upload_success_count > 0:
+            st.warning(f"⚠️ {upload_success_count} chunks uploaded, {upload_failed_count} failed.")
+        else:
+            st.error("❌ No chunks were uploaded due to errors.")
