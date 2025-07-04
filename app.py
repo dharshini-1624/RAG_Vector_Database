@@ -15,7 +15,7 @@ SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 
 # Configure Gemini
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-client = genai.Client(api_key=GEMINI_API_KEY)
+genai.configure(api_key=GEMINI_API_KEY)
 
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
@@ -51,18 +51,15 @@ def embed_chunks(chunks):
     embeddings = []
     for chunk in chunks:
         try:
-            response = client.models.embed_content(
-                model="text-embedding-004",
-                contents=chunk
+            response = genai.embed(
+                model="models/text-embedding-004",
+                content=chunk
             )
-            if response.embeddings and len(response.embeddings) > 0:
-                embedding = response.embeddings[0].values
-                embeddings.append({
-                    "content": chunk,
-                    "embedding": embedding
-                })
-            else:
-                st.error("Embedding failed: No embeddings returned from Gemini API.")
+            embedding = response["embedding"]
+            embeddings.append({
+                "content": chunk,
+                "embedding": embedding
+            })
         except Exception as e:
             st.error(f"Embedding failed: {e}")
     return embeddings
