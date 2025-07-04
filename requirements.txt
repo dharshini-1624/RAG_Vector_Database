@@ -1,7 +1,10 @@
+pip>=23.0
 streamlit==1.32.2
 pandas==2.2.2
 openpyxl==3.1.2
 python-dotenv==1.0.1
-supabase==2.3.4
+supabase==1.0.3
+gotrue==1.0.2
+httpx==0.23.3
 PyMuPDF==1.23.22
 google-generativeai==0.3.2
