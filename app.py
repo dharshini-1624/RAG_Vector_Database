@@ -23,9 +23,25 @@ SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 # Debug prints to help diagnose missing/empty secrets
 print("SUPABASE_URL:", SUPABASE_URL)
 print("SUPABASE_KEY:", SUPABASE_KEY)
+print("SUPABASE_URL type:", type(SUPABASE_URL))
+print("SUPABASE_KEY type:", type(SUPABASE_KEY))
+print("SUPABASE_URL length:", len(SUPABASE_URL) if SUPABASE_URL else "None")
+print("SUPABASE_KEY length:", len(SUPABASE_KEY) if SUPABASE_KEY else "None")
 
 if not SUPABASE_URL or not SUPABASE_KEY:
     st.error("SUPABASE_URL and SUPABASE_KEY must be set in your environment variables or Streamlit secrets. Please check your Streamlit Cloud Secrets configuration.")
+    st.error(f"SUPABASE_URL: {'SET' if SUPABASE_URL else 'MISSING'}")
+    st.error(f"SUPABASE_KEY: {'SET' if SUPABASE_KEY else 'MISSING'}")
+    st.stop()
+
+# Validate URL format
+if not SUPABASE_URL.startswith("https://") or not SUPABASE_URL.endswith(".supabase.co"):
+    st.error(f"Invalid SUPABASE_URL format. Expected: https://xxx.supabase.co, Got: {SUPABASE_URL}")
+    st.stop()
+
+# Validate key format (should be a JWT token)
+if not SUPABASE_KEY.startswith("eyJ"):
+    st.error(f"Invalid SUPABASE_KEY format. Should start with 'eyJ'. Got: {SUPABASE_KEY[:10]}...")
     st.stop()
 
 # Configure Gemini
