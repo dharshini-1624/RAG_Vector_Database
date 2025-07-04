@@ -2,6 +2,7 @@ import streamlit as st
 import os
 from dotenv import load_dotenv
 from supabase import create_client, Client
+import requests
 
 # Google Generative AI import and configuration
 try:
@@ -47,18 +48,31 @@ if not GEMINI_API_KEY:
     st.error("GEMINI_API_KEY must be set in your environment variables or Streamlit secrets.")
     st.stop()
 
-# Set Gemini API key globally if supported
-try:
-    genai.configure(api_key=GEMINI_API_KEY)
-except Exception:
-    pass
+# --- Gemini Embedding via REST API ---
+EMBEDDING_URL = f"https://generativelanguage.googleapis.com/v1beta/models/embedding-001:embedContent?key={GEMINI_API_KEY}"
 
-# Prepare Gemini embedding model
-# -try:
-# -    embedding_model = genai.GenerativeModel("embedding-001")
-# -except Exception as e:
-# -    st.error(f"Failed to initialize Gemini embedding model: {e}")
-# -    st.stop()
+def get_gemini_embedding(text):
+    headers = {"Content-Type": "application/json"}
+    data = {
+        "model": "models/embedding-001",
+        "content": {"parts": [{"text": text}]},
+        "taskType": "RETRIEVAL_DOCUMENT"
+    }
+    try:
+        response = requests.post(EMBEDDING_URL, headers=headers, json=data)
+        if response.status_code == 200:
+            embedding = response.json().get("embedding", {}).get("values")
+            if embedding:
+                return embedding
+            else:
+                print("No embedding returned in response:", response.json())
+                return None
+        else:
+            print("Gemini API error:", response.text)
+            return None
+    except Exception as e:
+        print(f"Exception during Gemini API call: {e}")
+        return None
 
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
@@ -91,36 +105,15 @@ def chunk_text(text, chunk_size=500, overlap=200):
 
 def embed_chunks(chunks):
     embeddings = []
-    # Test Gemini API with a simple string
-    try:
-        test_response = genai.embed_content(
-            model="models/embedding-001",
-            content="hello world",
-            task_type="retrieval_document"
-        )
-        print("Gemini API test response (hello world):", test_response)
-    except Exception as e:
-        st.error(f"Gemini API test call failed: {e}")
     for chunk in chunks:
-        try:
-            response = genai.embed_content(
-                model="models/embedding-001",
-                content=chunk,
-                task_type="retrieval_document"
-            )
-            print("Gemini API response for chunk:", response)
-            if hasattr(response, 'error'):
-                print("Gemini API error field:", response.error)
-                st.error(f"Gemini API error: {response.error}")
-            if response and hasattr(response, "embedding"):
-                embeddings.append({
-                    "content": chunk,
-                    "embedding": response.embedding
-                })
-            else:
-                st.error("Embedding failed: No embeddings returned from Gemini API.")
-        except Exception as e:
-            st.error(f"Embedding failed: {e}")
+        embedding = get_gemini_embedding(chunk)
+        if embedding:
+            embeddings.append({
+                "content": chunk,
+                "embedding": embedding
+            })
+        else:
+            st.error("Embedding failed: No embeddings returned from Gemini API.")
     return embeddings
 
 # --- Main Logic ---
