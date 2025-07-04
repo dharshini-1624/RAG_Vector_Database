@@ -53,6 +53,13 @@ try:
 except Exception:
     pass
 
+# Prepare Gemini embedding model
+# -try:
+# -    embedding_model = genai.GenerativeModel("embedding-001")
+# -except Exception as e:
+# -    st.error(f"Failed to initialize Gemini embedding model: {e}")
+# -    st.stop()
+
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 st.title("📄 RAG Vector Uploader")
