@@ -2,8 +2,15 @@ import streamlit as st
 import os
 from dotenv import load_dotenv
 from supabase import create_client, Client
-from google import genai
-from google.genai import types
+
+# Handle Google genai import with error handling
+try:
+    from google import genai
+    from google.genai import types
+except ImportError:
+    st.error("Failed to import Google Generative AI library. Please check your requirements.txt and ensure google-generativeai is installed.")
+    st.stop()
+
 import pandas as pd
 import fitz  # PyMuPDF for PDF
 from uuid import uuid4
