@@ -47,7 +47,11 @@ if not GEMINI_API_KEY:
     st.error("GEMINI_API_KEY must be set in your environment variables or Streamlit secrets.")
     st.stop()
 
-# No configure() method; just use the API key in the model call
+# Set Gemini API key globally if supported
+try:
+    genai.configure(api_key=GEMINI_API_KEY)
+except Exception:
+    pass
 
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
@@ -80,18 +84,17 @@ def chunk_text(text, chunk_size=500, overlap=200):
 
 def embed_chunks(chunks):
     embeddings = []
-    try:
-        embedding_model = genai.GenerativeModel("embedding-001", api_key=GEMINI_API_KEY)
-    except Exception as e:
-        st.error(f"Failed to initialize Gemini embedding model: {e}")
-        return embeddings
     for chunk in chunks:
         try:
-            result = embedding_model.embed_content(chunk)
-            if result and hasattr(result, 'embedding'):
+            response = genai.embed_content(
+                model="models/embedding-001",
+                content=chunk,
+                task_type="retrieval_document"
+            )
+            if response and hasattr(response, "embedding"):
                 embeddings.append({
                     "content": chunk,
-                    "embedding": result.embedding
+                    "embedding": response.embedding
                 })
             else:
                 st.error("Embedding failed: No embeddings returned from Gemini API.")
