@@ -83,7 +83,7 @@ uploaded_file = st.file_uploader("Upload PDF, CSV, or Excel", type=["pdf", "csv"
 def extract_text(file):
     if file.name.endswith(".pdf"):
         doc = fitz.open(stream=file.read(), filetype="pdf")
-        return "\n".join([page.get_text("text") for page in doc])
+        return "\n".join([page.get_text() for page in doc])
     elif file.name.endswith(".csv"):
         df = pd.read_csv(file)
         return df.to_csv(index=False)
