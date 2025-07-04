@@ -2,8 +2,8 @@ import streamlit as st
 import os
 from dotenv import load_dotenv
 from supabase import create_client, Client
-import google.generativeai as genai
-from google.generativeai import types
+from google import genai
+from google.genai import types
 import pandas as pd
 import fitz  # PyMuPDF for PDF
 from uuid import uuid4
@@ -13,9 +13,17 @@ load_dotenv()
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 
+# Debug prints to help diagnose missing/empty secrets
+print("SUPABASE_URL:", SUPABASE_URL)
+print("SUPABASE_KEY:", SUPABASE_KEY)
+
+if not SUPABASE_URL or not SUPABASE_KEY:
+    st.error("SUPABASE_URL and SUPABASE_KEY must be set in your environment variables or Streamlit secrets. Please check your Streamlit Cloud Secrets configuration.")
+    st.stop()
+
 # Configure Gemini
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-genai.configure(api_key=GEMINI_API_KEY)
+client = genai.Client(api_key=GEMINI_API_KEY)
 
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
@@ -51,15 +59,18 @@ def embed_chunks(chunks):
     embeddings = []
     for chunk in chunks:
         try:
-            response = genai.embed(
-                model="models/text-embedding-004",
-                content=chunk
+            response = client.models.embed_content(
+                model="text-embedding-004",
+                contents=chunk
             )
-            embedding = response["embedding"]
-            embeddings.append({
-                "content": chunk,
-                "embedding": embedding
-            })
+            if response.embeddings and len(response.embeddings) > 0:
+                embedding = response.embeddings[0].values
+                embeddings.append({
+                    "content": chunk,
+                    "embedding": embedding
+                })
+            else:
+                st.error("Embedding failed: No embeddings returned from Gemini API.")
         except Exception as e:
             st.error(f"Embedding failed: {e}")
     return embeddings
