@@ -84,6 +84,16 @@ def chunk_text(text, chunk_size=500, overlap=200):
 
 def embed_chunks(chunks):
     embeddings = []
+    # Test Gemini API with a simple string
+    try:
+        test_response = genai.embed_content(
+            model="models/embedding-001",
+            content="hello world",
+            task_type="retrieval_document"
+        )
+        print("Gemini API test response (hello world):", test_response)
+    except Exception as e:
+        st.error(f"Gemini API test call failed: {e}")
     for chunk in chunks:
         try:
             response = genai.embed_content(
@@ -91,6 +101,10 @@ def embed_chunks(chunks):
                 content=chunk,
                 task_type="retrieval_document"
             )
+            print("Gemini API response for chunk:", response)
+            if hasattr(response, 'error'):
+                print("Gemini API error field:", response.error)
+                st.error(f"Gemini API error: {response.error}")
             if response and hasattr(response, "embedding"):
                 embeddings.append({
                     "content": chunk,
