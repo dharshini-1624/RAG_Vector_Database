@@ -3,12 +3,13 @@ import os
 from dotenv import load_dotenv
 from supabase import create_client, Client
 
-# Handle Google genai import with error handling
+# Handle Google genai import with better error handling
 try:
-    from google import genai
-    from google.genai import types
-except ImportError:
-    st.error("Failed to import Google Generative AI library. Please check your requirements.txt and ensure google-generativeai is installed.")
+    import google.generativeai as genai
+    from google.generativeai import types
+except ImportError as e:
+    st.error(f"Failed to import Google Generative AI library: {e}")
+    st.error("Please ensure google-generativeai is correctly installed in your requirements.txt")
     st.stop()
 
 import pandas as pd
@@ -30,7 +31,7 @@ if not SUPABASE_URL or not SUPABASE_KEY:
 
 # Configure Gemini
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-client = genai.Client(api_key=GEMINI_API_KEY)
+genai.configure(api_key=GEMINI_API_KEY)
 
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
@@ -66,15 +67,14 @@ def embed_chunks(chunks):
     embeddings = []
     for chunk in chunks:
         try:
-            response = client.models.embed_content(
+            embedding = genai.embed_content(
                 model="text-embedding-004",
-                contents=chunk
+                content=chunk
             )
-            if response.embeddings and len(response.embeddings) > 0:
-                embedding = response.embeddings[0].values
+            if embedding and hasattr(embedding, 'values'):
                 embeddings.append({
                     "content": chunk,
-                    "embedding": embedding
+                    "embedding": embedding.values
                 })
             else:
                 st.error("Embedding failed: No embeddings returned from Gemini API.")
