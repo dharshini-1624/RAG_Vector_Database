@@ -6,7 +6,6 @@ from supabase import create_client, Client
 # Handle Google genai import with better error handling
 try:
     import google.generativeai as genai
-    from google.generativeai import types
 except ImportError as e:
     st.error(f"Failed to import Google Generative AI library: {e}")
     st.error("Please ensure google-generativeai is correctly installed in your requirements.txt")
@@ -31,6 +30,11 @@ if not SUPABASE_URL or not SUPABASE_KEY:
 
 # Configure Gemini
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+if not GEMINI_API_KEY:
+    st.error("GEMINI_API_KEY must be set in your environment variables or Streamlit secrets.")
+    st.stop()
+
+# Configure the API key
 genai.configure(api_key=GEMINI_API_KEY)
 
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
@@ -67,14 +71,16 @@ def embed_chunks(chunks):
     embeddings = []
     for chunk in chunks:
         try:
-            embedding = genai.embed_content(
+            # Use the correct API for embeddings
+            result = genai.embed_content(
                 model="text-embedding-004",
-                content=chunk
+                content=chunk,
+                task_type="retrieval_document"
             )
-            if embedding and hasattr(embedding, 'values'):
+            if result and hasattr(result, 'embedding'):
                 embeddings.append({
                     "content": chunk,
-                    "embedding": embedding.values
+                    "embedding": result.embedding
                 })
             else:
                 st.error("Embedding failed: No embeddings returned from Gemini API.")
