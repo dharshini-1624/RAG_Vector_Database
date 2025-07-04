@@ -2,8 +2,8 @@ import streamlit as st
 import os
 from dotenv import load_dotenv
 from supabase import create_client, Client
-from google import genai
-from google.genai import types
+import google.generativeai as genai
+from google.generativeai import types
 import pandas as pd
 import fitz  # PyMuPDF for PDF
 from uuid import uuid4
